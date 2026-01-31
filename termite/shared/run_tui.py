@@ -61,7 +61,7 @@ def strip_ansi_escape_sequences(data: str) -> str:
     return ansi_escape.sub("", data)
 
 
-def run_in_pseudo_terminal(script: Script, timeout: int = 5) -> Tuple[str, str]:
+def run_in_pseudo_terminal(script: Script, timeout: int = 10) -> Tuple[str, str]:
     python_exe = get_python_executable()
     tui_file = save_script_to_file(script)
     runner_file = os.path.join(os.path.dirname(__file__), "utils", "run_pty.py")

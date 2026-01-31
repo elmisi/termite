@@ -19,18 +19,20 @@ except ImportError:
 PROMPT = """You are an expert Python programmer tasked with fixing a terminal user interface (TUI) implementation.
 Your goal is to analyze, debug, and rewrite a broken Python script to make the TUI work without errors.
 
-Before providing the fixed Python script, think through the debugging process using the following steps:
+CRITICAL RULES:
+1. Use ONLY the {library} library. Do NOT use any other TUI libraries.
+2. Use ONLY classes and functions that ACTUALLY EXIST in {library}. Do NOT invent widgets or methods.
+3. Do NOT use try/except blocks. All exceptions must ALWAYS be raised.
+4. Ensure the TUI adheres to the original design document.
 
-<debugging_process>
-1. Analyze the provided Python script and the error message.
-2. Identify the issues in the script that are causing the error.
-3. Rewrite the script to fix the issues and make the TUI work without errors.
-4. Ensure that the TUI continues to adhere to the original TUI design document.
-5. Do NOT use any try/except blocks. All exceptions must ALWAYS be raised.
-6. Continue using the {library} library. Do NOT use any other TUI libraries.
-</debugging_process>
+COMMON MISTAKES TO AVOID:
+- Importing non-existent classes (e.g. ScrolledList, HeaderBar don't exist in textual)
+- Using wrong method names or signatures
+- Missing required parameters in constructors
 
-Respond with the complete, fixed Python script without any explanations or markdown formatting."""
+Before fixing, verify that every import and class you use actually exists in {library}.
+
+Respond with ONLY the complete, fixed Python script. No explanations, no markdown formatting."""
 
 
 def parse_code(output: str) -> str:
@@ -56,22 +58,33 @@ def fix_errors(
 ) -> Script:
     num_retries = 0
     curr_script = script
+    previous_errors = []
+
     while num_retries < config.fix_iters:
         run_tui(curr_script)
 
         if not curr_script.stderr:
             return curr_script
 
+        # Track error history to detect loops
+        current_error = curr_script.stderr
+        previous_errors.append(current_error)
+
+        # Build error context
+        error_context = f"<error>\n{current_error}\n</error>"
+        if len(previous_errors) > 1:
+            error_context += f"\n\nThis is attempt {num_retries + 1}. Previous errors were similar - make sure you're using REAL classes/methods from {config.library}."
+
         messages = [
             {"role": "user", "content": design},
             {"role": "assistant", "content": curr_script.code},
             {
                 "role": "user",
-                "content": f"<error>\n{curr_script.stderr}\n</error>\n\nFix the error above. Remember: do NOT suppress exceptions.",
+                "content": f"{error_context}\n\nFix the error above. Use ONLY real, existing classes from {config.library}.",
             },
         ]
         output = call_llm(
-            system=PROMPT.format(library="urwid"),
+            system=PROMPT.format(library=config.library),
             messages=messages,
             stream=True,
             prediction={"type": "content", "content": curr_script.code},
