@@ -3,6 +3,14 @@ set -e
 
 cd "$(dirname "$0")"
 
+# Carica configurazione da .env se esiste
+if [ -f .env ]; then
+    export $(grep -v '^#' .env | xargs)
+else
+    echo "Warning: .env not found. Copy .env.example to .env and configure it."
+    exit 1
+fi
+
 # Crea virtual env se non esiste
 if [ ! -d "venv" ]; then
     echo "Creazione virtual environment..."
@@ -16,11 +24,17 @@ source venv/bin/activate
 echo "Installazione dipendenze..."
 pip install -e . --quiet
 
-# Configura Ollama con gemma3
+# Disabilita altri provider LLM
 unset OPENAI_API_KEY
 unset ANTHROPIC_API_KEY
-export OLLAMA_MODEL=qwen2.5-coder:14b
+export OLLAMA_MODEL="${CODING_MODEL}"
 
-# Lancia termite con eventuali argomenti passati allo script
-echo "Avvio termite con Ollama qwen2.5-coder:14b..."
-termite --library rich "$@"
+# Lancia termite
+echo "Avvio termite..."
+echo "  Host: ${OLLAMA_HOST}"
+echo "  Reasoning: ${REASONING_MODEL}"
+echo "  Coding: ${CODING_MODEL}"
+termite --library "${LIBRARY}" \
+    --reasoning-model "${REASONING_MODEL}" \
+    --coding-model "${CODING_MODEL}" \
+    "$@"
