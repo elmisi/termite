@@ -22,13 +22,13 @@ PROGRESS_LIMIT = MAX_TOKENS // 15
 PROMPT = """You are an expert Python programmer tasked with building a terminal user interface (TUI).
 You will be given a design document that describes the TUI and its requirements. Your job is to implement the TUI using the {library} library.
 
-You MUST follow these rules at all times:
-- Use ONLY the {library} library to build the TUI. Do NOT use any other TUI libraries.
-- You may use common Python packages, but only if absolutely necessary. E.g. numpy, redis, beautifulsoup4, etc.
-- Do NOT use any try/except blocks. All exceptions must ALWAYS be raised. 
-- Ensure the TUI takes up the full width (and ideally height) of the terminal window.
-- Implement the design and functionality in the given TUI description.
-- Double-check your code for potential bugs or unexpected behaviors.
+CRITICAL RULES:
+- Use ONLY the {library} library. Do NOT use any other TUI libraries.
+- Use ONLY classes and functions that ACTUALLY EXIST in {library}. Do NOT invent or guess widget names.
+- Do NOT use try/except blocks. All exceptions must be raised.
+- Ensure the TUI takes up the full terminal width/height.
+
+{library_hints}
 
 Output your response in this format:
 
@@ -37,16 +37,43 @@ Your step-by-step implementation plan goes here...
 </thoughts>
 
 <code>
-import {library}
-
-# TUI implementation code goes here
-# ...
-
-if __name__ == "__main__":
-    main()
+# Your complete Python code here
 </code>
 
-Remember, your code must be bug-free and adhere precisely to the given TUI design without any unexpected behavior."""
+Double-check that every import and class you use actually exists in {library}."""
+
+LIBRARY_HINTS = {
+    "rich": """RICH LIBRARY - Available components:
+- Console, Table, Panel, Layout, Live
+- Progress, Spinner, Status
+- Text, Markdown, Syntax
+- Prompt.ask() for input
+Use Live() context manager for dynamic updates.""",
+
+    "textual": """TEXTUAL LIBRARY - Available widgets:
+- App, Screen, Widget, Static, Label, Button
+- DataTable, ListView, Tree, Input, TextArea
+- Header, Footer, Container, Horizontal, Vertical
+- Use compose() method to yield widgets
+- Use CSS for styling via CSS property or .tcss files""",
+
+    "urwid": """URWID LIBRARY - Available widgets:
+- Text, Edit, Button, CheckBox, RadioButton
+- Pile, Columns, Frame, Filler, Padding
+- ListBox, SimpleFocusListWalker
+- MainLoop for event handling
+- Use palette for colors""",
+
+    "curses": """CURSES LIBRARY:
+- Use stdscr.addstr(), stdscr.getch()
+- curses.wrapper() for initialization
+- curses.newwin() for windows
+- Handle KEY_UP, KEY_DOWN, etc."""
+}
+
+
+def get_library_hints(library: str) -> str:
+    return LIBRARY_HINTS.get(library, "")
 
 
 def parse_code(output: str) -> str:
@@ -88,8 +115,9 @@ def parse_code(output: str) -> str:
 def build_tui(design: str, p_bar: Progress, config: Config) -> Script:
     task = p_bar.add_task("build", total=PROGRESS_LIMIT)
 
+    library_hints = get_library_hints(config.library)
     output = call_llm(
-        system=PROMPT.format(library=config.library),
+        system=PROMPT.format(library=config.library, library_hints=library_hints),
         messages=[{"role": "user", "content": design}],
         stream=True,
     )
