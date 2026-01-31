@@ -11,11 +11,11 @@ from rich.progress import (
 try:
     from termite.shared import MAX_TOKENS
     from termite.dtos import Script, Config
-    from termite.tools import design_tui, build_tui, fix_errors, refine
+    from termite.tools import design_tui, build_tui, fix_errors, refine, clarify_task
 except ImportError:
     from shared import MAX_TOKENS
     from dtos import Script, Config
-    from tools import design_tui, build_tui, fix_errors, refine
+    from tools import design_tui, build_tui, fix_errors, refine, clarify_task
 
 console = Console(log_time=False, log_path=False)
 
@@ -33,6 +33,12 @@ def _get_progress_bar() -> Progress:
         TimeElapsedColumn(),
         transient=False,
     )
+
+
+def _clarify_task(prompt: str, config: Config) -> str:
+    console.log("[bold green]Clarifying requirements")
+    enriched_prompt = clarify_task(prompt, config)
+    return enriched_prompt
 
 
 def _design_tui(prompt: str, config: Config) -> str:
@@ -79,12 +85,14 @@ def _refine(script: Script, design: str, config: Config) -> Script:
 
 def termite(prompt: str, config: Config) -> Script:
     """
-    1. Generate a design document.
-    2. Implement the TUI.
-    3. Fix any bugs.
-    4. (Optional) Refine the TUI.
+    1. Clarify requirements with the user.
+    2. Generate a design document.
+    3. Implement the TUI.
+    4. Fix any bugs.
+    5. (Optional) Refine the TUI.
     """
 
+    prompt = _clarify_task(prompt, config)
     design = _design_tui(prompt, config)
     script = _build_tui(design, config)
     script = _fix_errors(script, design, config)
