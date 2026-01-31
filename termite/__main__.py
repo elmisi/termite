@@ -161,13 +161,32 @@ def main():
         default=None,
         help="Run a previously generated TUI. Use --name when creating a TUI to name it.",
     )
-    args = parser.parse_args()
-    config = Config(
-        library=args.library,
-        should_refine=args.refine,
-        refine_iters=args.refine_iters,
-        fix_iters=args.fix_iters,
+    parser.add_argument(
+        "--reasoning-model",
+        type=str,
+        default=None,
+        help="Model for clarification and design phases (default: OLLAMA_MODEL env var).",
     )
+    parser.add_argument(
+        "--coding-model",
+        type=str,
+        default=None,
+        help="Model for coding and debugging phases (default: OLLAMA_MODEL env var).",
+    )
+    args = parser.parse_args()
+
+    # Build config with optional model overrides
+    config_kwargs = {
+        "library": args.library,
+        "should_refine": args.refine,
+        "refine_iters": args.refine_iters,
+        "fix_iters": args.fix_iters,
+    }
+    if args.reasoning_model:
+        config_kwargs["reasoning_model"] = args.reasoning_model
+    if args.coding_model:
+        config_kwargs["coding_model"] = args.coding_model
+    config = Config(**config_kwargs)
 
     if args.run_tool is not None:
         tui = load_script(args.run_tool)

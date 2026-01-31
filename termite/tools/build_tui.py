@@ -120,6 +120,7 @@ def build_tui(design: str, p_bar: Progress, config: Config) -> Script:
         system=PROMPT.format(library=config.library, library_hints=library_hints),
         messages=[{"role": "user", "content": design}],
         stream=True,
+        model=config.coding_model,
     )
     code = ""
     for token in output:

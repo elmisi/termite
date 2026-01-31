@@ -95,6 +95,7 @@ def improve_tui(
         system=PROMPT.format(library=config.library),
         messages=messages,
         stream=True,
+        model=config.coding_model,
     )
     output = ""
     for token in output_iter:

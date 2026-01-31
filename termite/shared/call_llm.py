@@ -77,9 +77,10 @@ def call_anthropic(
     return response
 
 
-def call_ollama(system: str, messages: List[Dict[str, str]]) -> str:
+def call_ollama(system: str, messages: List[Dict[str, str]], **kwargs) -> str:
+    model = kwargs.get("model") or os.getenv("OLLAMA_MODEL", None)
     response = chat(
-        model=os.getenv("OLLAMA_MODEL", None),
+        model=model,
         messages=[{"role": "system", "content": system}, *messages],
     )
     return response.message.content
@@ -99,4 +100,4 @@ def call_llm(
     elif provider == "anthropic":
         return call_anthropic(system, messages, **kwargs)
     elif provider == "ollama":
-        return call_ollama(system, messages)
+        return call_ollama(system, messages, **kwargs)

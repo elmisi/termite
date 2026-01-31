@@ -75,7 +75,12 @@ def design_tui(prompt: str, p_bar: Progress, config: Config) -> str:
     task = p_bar.add_task("design", total=PROGRESS_LIMIT)
 
     messages = [{"role": "user", "content": prompt}]
-    output = call_llm(PROMPT.format(library=config.library), messages, stream=True)
+    output = call_llm(
+        PROMPT.format(library=config.library),
+        messages,
+        stream=True,
+        model=config.reasoning_model,
+    )
 
     design = ""
     for token in output:

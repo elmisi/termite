@@ -87,6 +87,7 @@ def fix_errors(
             system=PROMPT.format(library=config.library),
             messages=messages,
             stream=True,
+            model=config.coding_model,
             prediction={"type": "content", "content": curr_script.code},
         )
         code = ""
