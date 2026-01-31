@@ -77,17 +77,31 @@ def format_enriched_prompt(original_prompt: str, qa_pairs: list) -> str:
 def clarify_task(prompt: str, config: Config) -> str:
     qa_pairs = []
 
-    for _ in range(MAX_QUESTIONS):
+    for i in range(MAX_QUESTIONS):
         context = format_context(qa_pairs)
         system_prompt = PROMPT.format(prompt=prompt, context=context)
 
+        # Force at least one question on first iteration
+        if i == 0:
+            user_msg = "Ask your first clarifying question. Do NOT respond with DONE yet."
+        else:
+            user_msg = "What else do you need to know? Respond DONE if you have enough info."
+
         response = call_llm(
             system=system_prompt,
-            messages=[{"role": "user", "content": "What do you need to know?"}],
+            messages=[{"role": "user", "content": user_msg}],
+            model=config.reasoning_model,
         )
         response = response.strip()
 
+        # Check for DONE (allow after first question)
+        if i > 0 and response.upper() == "DONE":
+            console.print("[bright_black]No more questions needed.[/bright_black]")
+            break
+
+        # Skip if model still says DONE on first iteration (fallback)
         if response.upper() == "DONE":
+            console.print("[bright_black]Requirements are clear, proceeding...[/bright_black]")
             break
 
         console.print(f"[cyan]{response}[/cyan]")
